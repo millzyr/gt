@@ -1039,3 +1039,17 @@ column_classes_are_valid <- function(data, columns, valid_classes) {
 #
 #   print(x)
 # }
+
+open_in_text_edit <- function(file) {
+
+  file <- fs::path_abs(path = file) %>% as.character()
+  system(glue::glue("open -b com.apple.TextEdit '{file}'"))
+}
+
+open_in_ms_word <- function(file) {
+
+  file <- fs::path_abs(path = file) %>% as.character()
+  system(glue::glue("open -b com.microsoft.Word '{file}'"))
+}
+
+
