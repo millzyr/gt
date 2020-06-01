@@ -41,69 +41,54 @@ create_body_component_r <- function(data) {
     n_cols <- n_data_cols
   }
 
+  # Get the sequence of column numbers in the table body (these
+  # are the visible columns in the table exclusive of the stub)
+  column_series <- seq(n_cols)
+
+  # Replace an NA group with an empty string
+  if (any(is.na(groups_rows_df$group))) {
+
+    groups_rows_df <-
+      groups_rows_df %>%
+      dplyr::mutate(
+        group_label = ifelse(
+          is.na(group_label), "\\vspace*{-5mm}", group_label)) %>%
+      dplyr::mutate(
+        group_label = gsub("^NA", "\\textemdash", group_label))
+  }
+
+  # TODO: This context isn't implemented yet for RTF
+  group_rows <- create_group_rows(n_rows, groups_rows_df, context = "rtf")
+
+  if (stub_available) {
+    default_vars <- c("::rowname", default_vars)
+
+    body <-
+      dt_stub_df_get(data = data) %>%
+      dplyr::select(rowname) %>%
+      dplyr::rename(`::rowname` = rowname) %>%
+      cbind(body)
+  }
+
   # Split `body_content` by slices of rows and create data rows
   body_content <- as.vector(t(body[, default_vars]))
   row_splits <- split(body_content, ceiling(seq_along(body_content) / n_cols))
 
-  body_rows <- c()
-  for (i in seq_len(n_rows)) {
+  data_rows <- create_data_rows(n_rows, row_splits, context = "rtf")
 
-    # Process group rows
-    if (!is.null(groups_rows_df) &&
-        i %in% groups_rows_df$row) {
+  # TODO: Implement `create_summary_rows()` for RTF
+  summary_rows <-
+    create_summary_rows(
+      n_rows = n_rows,
+      n_cols = n_cols,
+      list_of_summaries = list_of_summaries,
+      groups_rows_df = groups_rows_df,
+      stub_available = stub_available,
+      summaries_present = summaries_present,
+      context = "rtf"
+    )
 
-      body_rows <-
-        c(body_rows,
-          rtf_body_row(
-            c(
-              groups_rows_df[which(groups_rows_df$row %in% i), 1][[1]],
-              rep("", n_cols - 1)), type = "group"))
-    }
-
-    # Process "data" rows
-    if (i != length(row_splits)) {
-      body_rows <-
-        c(body_rows, rtf_body_row(row_splits[[i]], type = "row"))
-    } else {
-      body_rows <-
-        c(body_rows, rtf_last_body_row(content = row_splits[[i]]))
-    }
-
-    # Process summary rows
-    if (stub_available && summaries_present &&
-        i %in% groups_rows_df$row_end) {
-
-      group <-
-        groups_rows_df %>%
-        dplyr::filter(row_end == i) %>%
-        dplyr::pull(group)
-
-      if (group %in% names(list_of_summaries$summary_df_display_list)) {
-
-        summary_df <-
-          list_of_summaries$summary_df_display_list[[
-            which(names(list_of_summaries$summary_df_display_list) == group)]] %>%
-          as.data.frame(stringsAsFactors = FALSE)
-
-        body_content_summary <-
-          as.vector(t(summary_df)) %>%
-          tidy_gsub("\u2014", "-")
-
-        row_splits_summary <-
-          split_body_content(
-            body_content = body_content_summary,
-            n_cols = n_cols)
-
-        for (j in seq(length(row_splits_summary))) {
-
-          body_rows <-
-            c(body_rows, rtf_body_row(row_splits_summary[[j]], type = "row"))
-        }
-      }
-    }
-  }
-
-  paste0(body_rows, collapse = "")
+  paste(collapse = "", paste0(group_rows, data_rows, summary_rows))
 }
 
 create_source_notes_component_r <- function(data) {

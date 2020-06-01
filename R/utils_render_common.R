@@ -360,8 +360,11 @@ create_data_rows <- function(n_rows,
   lapply(seq(n_rows), function(x) {
 
     if (context == "latex") {
-
       latex_body_row(content = row_splits[[x]], type = "row")
+    }
+
+    if (context == "rtf") {
+      rtf_body_row(content = row_splits[[x]], type = "row")
     }
 
   }) %>%
@@ -420,6 +423,17 @@ create_summary_rows <- function(n_rows,
             collapse = "")
 
         s_rows <- paste0(top_line, s_rows)
+      }
+
+      if (context == "rtf") {
+
+        s_rows <- character(0)
+
+        for (j in seq(length(row_splits_summary))) {
+
+          s_rows <-
+            c(s_rows, rtf_body_row(row_splits_summary[[j]], type = "row"))
+        }
       }
 
     } else {
