@@ -141,6 +141,8 @@ fmt_number <- function(data,
                        dec_mark = ".",
                        locale = NULL) {
 
+  force(decimals) # testing if this will stop the lazy evaluation.
+  
   # Perform input object validation
   stop_if_not_gt(data = data)
 
